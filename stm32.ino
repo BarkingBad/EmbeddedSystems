@@ -29,7 +29,7 @@ void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect("Nucleo-144 BIG DICK")) {
+    if (client.connect("Nucleo-144")) {
       Serial.println("connected");
     } else {
       Serial.print("failed, rc=");
