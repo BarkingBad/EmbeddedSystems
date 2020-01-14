@@ -6,23 +6,42 @@
 #include <lwipopts.h>
 #include <lwipopts_default.h>
 #include <STM32Ethernet.h>
-
 #include <PubSubClient.h>
-#include <OneWire.h> 
-#include <DallasTemperature.h>
 
-long lastMsg = 0;
-char msg[50];
+
 const char topic[] = "outTopic";
-const char server[] = "192.168.0.100";
+const char server[] = "192.168.0.104";
 
-#define ONE_WIRE_BUS 6 // D6 ON Board
-
-OneWire oneWire(ONE_WIRE_BUS);
-DallasTemperature sensor(&oneWire);
+const float epsilon = 0.01;
+float lastMsg = 0;
 
 EthernetClient ethClient;
 PubSubClient client(ethClient);
+
+void blink(int led) {
+  
+    digitalWrite(led, HIGH);
+    delay(300);
+    digitalWrite(led, LOW);
+}
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  float newMsg = atof((char*) payload);
+  Serial.println(newMsg);
+  if(newMsg != 0.0) {
+    float diff = lastMsg - newMsg;
+    
+    if (fabs(diff) < epsilon) {
+      blink(LED_GREEN);
+    } else if(diff < 0) {
+      blink(LED_RED);
+    } else {
+      blink(LED_BLUE);
+    }
+  
+    lastMsg = newMsg;
+  }
+}
 
 void reconnect() {
 
@@ -38,19 +57,27 @@ void reconnect() {
       delay(1000);
     }
   }
+  client.subscribe(topic);
 }
 
 void setup() {
   Serial.begin(115200);
-
+  pinMode(LED_GREEN, OUTPUT);
+  pinMode(LED_BLUE, OUTPUT);
+  pinMode(LED_RED, OUTPUT);
+  digitalWrite(LED_GREEN, LOW);
+  digitalWrite(LED_BLUE, LOW);
+  digitalWrite(LED_RED, LOW);
+  
   client.setServer(server, 1883);
-
+  
   Serial.println("Connecting");
   while(Ethernet.begin() == 0) {
     Serial.print(".");
   }
+  
+  client.setCallback(callback);
   Serial.println("Connected");
-  sensor.begin();
 }
 
 void loop() {
@@ -58,15 +85,4 @@ void loop() {
     reconnect();
   }
   client.loop();
-  
-  long now = millis();
-  
-  if (now - lastMsg > 2000) {
-    lastMsg = now;
-    sensor.requestTemperatures();
-    double tmp = sensor.getTempCByIndex(0);
-    dtostrf(tmp,5,2,msg);
-    Serial.println(msg);
-    client.publish(topic, msg);
-  }
 }
