@@ -3,9 +3,9 @@
 #include <OneWire.h> 
 #include <DallasTemperature.h>
 
-const char* ssid = "DESKTOP-M6800-303";
-const char* password = "12345678";
-const char* mqtt_server = "192.168.137.11";
+const char* ssid = "esp";
+const char* password = "haslo8266";
+const char* mqtt_server = "192.168.0.104";
 
 const char* topic = "outTopic";
 
@@ -53,25 +53,27 @@ void reconnect() {
 
 void setup() {
   Serial.begin(115200);
-//  setup_wifi();
-//  client.setServer(mqtt_server, 1883);
+  setup_wifi();
+  client.setServer(mqtt_server, 1883);
   sensors.begin();
 }
 
 void loop() {
 
-//  if (!client.connected()) {
-//    reconnect();
-//  }
-//  client.loop();
+  if (!client.connected()) {
+    reconnect();
+  }
+  client.loop();
 
   long now = millis();
   if (now - lastMsg > 2000) {
     lastMsg = now;
     sensors.requestTemperatures();
     double tmp = sensors.getTempCByIndex(0);
-    snprintf (msg, 75, "%lf", tmp);
+    Serial.print("TMP ");
+    Serial.println(tmp);
+    dtostrf(tmp,5,2,msg);
     Serial.println(msg);
-//    client.publish(topic, msg);
+    client.publish(topic, msg);
   }
 }
